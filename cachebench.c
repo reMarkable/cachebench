@@ -163,16 +163,16 @@ void compute_stats(int i, int j, double refcnt, double overhead_per_ref,
 	}
     }
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("%-15d %-15.2f %-15.2f %-15.2f\n", 
+      fprintf(stderr, "%-15d %-15.2f %-15.2f %-15.2f\n",
 	       sizes[i],
 	       ARRAY(times,i,j,repeat_count),
 	       ARRAY(bws,i,j,repeat_count),
 	       ARRAY(percents,i,j,repeat_count));
     }
   else
-    printf("%d %f\n", 
+    fprintf(stderr, "%d %f\n", 
 	   sizes[i],
 	   ARRAY(bws,i,j,repeat_count));
   sleep(1);
@@ -196,11 +196,11 @@ void compute_cache_sizes(double *times, double *bws, double *percents, int *size
 	}
     }
 
-  printf("\n\t\t\tCache Capacity Analysis\n\n");
+  fprintf(stderr, "\n\t\t\tCache Capacity Analysis\n\n");
   
   if (1.0/percents[maxa] >= THRESHOLD)
     {
-      printf("No L1 limit found, must be larger than %d bytes.\n",memsize);
+      fprintf(stderr, "No L1 limit found, must be larger than %d bytes.\n",memsize);
       return;
     }
     
@@ -211,12 +211,12 @@ void compute_cache_sizes(double *times, double *bws, double *percents, int *size
   cacheb = sizes[maxb-1];
 
   if (cachea > cacheb)
-    printf("Level 1 Cache: %d bytes\n",cachea);
+    fprintf(stderr, "Level 1 Cache: %d bytes\n",cachea);
   else
     {
-      printf("Level 1 Cache: %d bytes\n",cachea);
+      fprintf(stderr, "Level 1 Cache: %d bytes\n",cachea);
       if ((times[maxa]/times[maxb] < THRESHOLD) && (1.0/percents[maxb] < THRESHOLD))
-	printf("Level 2 Cache: %d bytes\n",cacheb);
+	fprintf(stderr, "Level 2 Cache: %d bytes\n",cacheb);
     }
 }
 
@@ -278,7 +278,7 @@ int usage(int argc, char **argv)
 
   if ((type & (READONLY|WRITEONLY|READWRITE|MEMORYCOPY|MEMORYSET)) == 0)
     {
-      if (isatty(1))
+      if (1 || isatty(1))
 	type |= READONLY|WRITEONLY|READWRITE|MEMORYCOPY|MEMORYSET;
       else
 	type |= READWRITE;
@@ -293,8 +293,8 @@ int usage(int argc, char **argv)
       fprintf(stderr, "\t -t Use hand tuned versions of the above\n");
       fprintf(stderr, "\t -s memset() benchmark\n");
       fprintf(stderr, "\t -p memcpy() benchmark\n");
-      /* fprintf(stderr, "\t -c Enable calibration code\n"); 
-      fprintf(stderr, "\t -g Enable cache size guessing code\n"); */
+      /* ffprintf(stderr, stderr, "\t -c Enable calibration code\n"); 
+      fprintf(stderr, stderr, "\t -g Enable cache size guessing code\n"); */
       fprintf(stderr, "\t -x Number of measurements between powers of 2.\n");
       fprintf(stderr, "\t -m Specify the log2(available physical memory)\n");
       fprintf(stderr, "\t -d Number of seconds per iteration\n");
@@ -309,7 +309,7 @@ int usage(int argc, char **argv)
 
   timeslots = resolution*(logmemsize - CACHE_MIN_BITS) + 1;
 
-  DBG(printf("%d %d %d %d\n",logmemsize,memsize,duration,timeslots)); 
+  DBG(fprintf(stderr, "%d %d %d %d\n",logmemsize,memsize,duration,timeslots)); 
 
   return(type);
 }
@@ -415,7 +415,7 @@ double calibrate_benchmark(REGISTER DATATYPE *x, REGISTER int to_do_loops, REGIS
   *ous = TIMER_ELAPSED_US;
   {
     double refcnt = ((double)loops*(double)limit)+(double)index;
-    DBG(fprintf(stderr,"C: %d loops at limit %d took %f us, %f refs.\n",loops,limit,*ous,refcnt));
+    DBG(ffprintf(stderr, stderr,"C: %d loops at limit %d took %f us, %f refs.\n",loops,limit,*ous,refcnt));
     return(refcnt);
   }
 } */
@@ -709,7 +709,7 @@ void initialize_sizes(int *sizes)
   for (j=0; j<timeslots; j+=resolution)
     {
       sizes[j] = 1<<(CACHE_MIN_BITS+j/resolution);
-      DBG(printf("POW: %d %d\n",j,sizes[j]));
+      DBG(fprintf(stderr, "POW: %d %d\n",j,sizes[j]));
 
       for (i=1;i<resolution;i++)
 	{
@@ -717,7 +717,7 @@ void initialize_sizes(int *sizes)
 	    {
 	      sizes[j+i] = sizes[j] + i*(sizes[j]/resolution);
 	      sizes[j+i] = sizes[j+i] - sizes[j+i]%(int)sizeof(DATATYPE);
-	      DBG(printf("SUB: %d %d\n",j+i,sizes[j+i]));
+	      DBG(fprintf(stderr, "SUB: %d %d\n",j+i,sizes[j+i]));
 	    }
 	}
     }
@@ -733,12 +733,12 @@ void do_memory_copy(int *sizes, void *x, double *times, double *bws, double *per
   assert(y = (void *)malloc(memsize));
   memset(y,0x0f,memsize);
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("\n\t\t%sMemory Copy Library Cache Test\n\n",
+      fprintf(stderr, "\n\t\t%sMemory Copy Library Cache Test\n\n",
 	     (!(type & NOCALIBRATE)) ? "Calibrated " : "");
-      printf("C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
-      printf("-------\t\t-------\t\t-------\t\t-------\n");
+      fprintf(stderr, "C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
+      fprintf(stderr, "-------\t\t-------\t\t-------\t\t-------\n");
     }
 
   for (i = 0; i < timeslots; i++) 
@@ -758,7 +758,7 @@ void do_memory_copy(int *sizes, void *x, double *times, double *bws, double *per
 	    {
 	      nullcnt = calibrate_benchmark_cache_memory_copy(x, tloops, limit, &cmicrosec);
 	      overhead_per_ref = (cmicrosec*1000.0) / nullcnt;
-	      DBG(fprintf(stderr,"C: %f ns per ref.\n",overhead_per_ref));
+	      DBG(ffprintf(stderr, stderr,"C: %f ns per ref.\n",overhead_per_ref));
 	    } */
 
 	  compute_stats(i,j,refcnt,overhead_per_ref,times,bws,percents,sizes,tmicrosec,1);
@@ -777,13 +777,13 @@ void do_memory_set(int *sizes, DATATYPE *x, double *times, double *bws, double *
   double refcnt, overhead_per_ref = 0.0, tmicrosec;
   /* double nullcnt = 0.0, cmicrosec = 0.0; */
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("\n\t\t%sMemory Set Library Cache Test\n\n",
+      fprintf(stderr, "\n\t\t%sMemory Set Library Cache Test\n\n",
 	     ((!(type & NOCALIBRATE)) ? "Calibrated " : ""));
 
-      printf("C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
-      printf("-------\t\t-------\t\t-------\t\t-------\n");
+      fprintf(stderr, "C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
+      fprintf(stderr, "-------\t\t-------\t\t-------\t\t-------\n");
     }
 
   for (i = 0; i < timeslots; i++) 
@@ -803,7 +803,7 @@ void do_memory_set(int *sizes, DATATYPE *x, double *times, double *bws, double *
 	    {
 	      nullcnt = calibrate_benchmark_cache_memory_copy(x, tloops, limit, &cmicrosec);
 	      overhead_per_ref = (cmicrosec*1000.0) / nullcnt;
-	      DBG(fprintf(stderr,"C: %f ns per ref.\n",overhead_per_ref));
+	      DBG(ffprintf(stderr, stderr,"C: %f ns per ref.\n",overhead_per_ref));
 	    } */
 
 	  compute_stats(i,j,refcnt,overhead_per_ref,times,bws,percents,sizes,tmicrosec,1);
@@ -820,14 +820,14 @@ void do_read_only(int *sizes, DATATYPE *x, double *times, double *bws, double *p
   double refcnt, overhead_per_ref = 0.0, tmicrosec;
   /* double nullcnt = 0.0, cmicrosec = 0.0; */
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("\n\t\t%s%s%s Read Cache Test\n\n",
+      fprintf(stderr, "\n\t\t%s%s%s Read Cache Test\n\n",
 	     ((type & HANDTUNED) ? "Tuned " : ""),
 	     ((!(type & NOCALIBRATE)) ? "Calibrated " : ""), DATASTRING);
 
-      printf("C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
-      printf("-------\t\t-------\t\t-------\t\t-------\n");
+      fprintf(stderr, "C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
+      fprintf(stderr, "-------\t\t-------\t\t-------\t\t-------\n");
     }
 
   for (i = 0; i < timeslots; i++) 
@@ -850,7 +850,7 @@ void do_read_only(int *sizes, DATATYPE *x, double *times, double *bws, double *p
 	    {
 	      nullcnt = calibrate_benchmark(x, tloops, limit, &cmicrosec);
 	      overhead_per_ref = (cmicrosec*1000.0) / nullcnt;
-	      DBG(fprintf(stderr,"C: %f ns per ref.\n",overhead_per_ref));
+	      DBG(ffprintf(stderr, stderr,"C: %f ns per ref.\n",overhead_per_ref));
 	    } */
 
 	  compute_stats(i,j,refcnt,overhead_per_ref,times,bws,percents,sizes,tmicrosec,sizeof(DATATYPE));
@@ -867,14 +867,14 @@ void do_write_only(int *sizes, DATATYPE *x, double *times, double *bws, double *
   double refcnt, overhead_per_ref = 0.0, tmicrosec;
   /* double nullcnt = 0.0, cmicrosec = 0.0; */
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("\n\t\t%s%s%s Write Cache Test\n\n",
+      fprintf(stderr, "\n\t\t%s%s%s Write Cache Test\n\n",
 	     ((type & HANDTUNED) ? "Tuned " : ""),
 	     ((!(type & NOCALIBRATE)) ? "Calibrated " : ""), DATASTRING);
 
-      printf("C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
-      printf("-------\t\t-------\t\t-------\t\t-------\n");
+      fprintf(stderr, "C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
+      fprintf(stderr, "-------\t\t-------\t\t-------\t\t-------\n");
     }
 
   for (i = 0; i < timeslots; i++) 
@@ -897,7 +897,7 @@ void do_write_only(int *sizes, DATATYPE *x, double *times, double *bws, double *
 	    {
 	      nullcnt = calibrate_benchmark(x, tloops, limit, &cmicrosec);
 	      overhead_per_ref = (cmicrosec*1000.0) / nullcnt;
-	      DBG(fprintf(stderr,"C: %f ns per ref.\n",overhead_per_ref));
+	      DBG(ffprintf(stderr, stderr,"C: %f ns per ref.\n",overhead_per_ref));
 	    } */
 	  
 	  compute_stats(i,j,refcnt,overhead_per_ref,times,bws,percents,sizes,tmicrosec,sizeof(DATATYPE));
@@ -914,14 +914,14 @@ void do_read_write(int *sizes, DATATYPE *x, double *times, double *bws, double *
   double refcnt, overhead_per_ref = 0.0, tmicrosec;
   /* double nullcnt = 0.0, cmicrosec = 0.0; */
 
-  if (isatty(1))
+  if (1 || isatty(1))
     {
-      printf("\n\t\t%s%s%s RMW Cache Test\n\n",
+      fprintf(stderr, "\n\t\t%s%s%s RMW Cache Test\n\n",
 	     ((type & HANDTUNED) ? "Tuned " : ""),
 	     ((!(type & NOCALIBRATE)) ? "Calibrated " : ""), DATASTRING);
 
-      printf("C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
-      printf("-------\t\t-------\t\t-------\t\t-------\n");
+      fprintf(stderr, "C Size\t\tNanosec\t\tMB/sec\t\t%% Chnge\n");
+      fprintf(stderr, "-------\t\t-------\t\t-------\t\t-------\n");
     }
 
   for (i = 0; i < timeslots; i++) 
@@ -945,7 +945,7 @@ void do_read_write(int *sizes, DATATYPE *x, double *times, double *bws, double *
 	      nullcnt = calibrate_benchmark(x, tloops, limit, &cmicrosec);
 	      nullcnt *= 2; 
 	      overhead_per_ref = (cmicrosec*1000.0) / nullcnt;
-	      DBG(fprintf(stderr,"C: %f ns per ref.\n",overhead_per_ref));
+	      DBG(ffprintf(stderr, stderr,"C: %f ns per ref.\n",overhead_per_ref));
 	    } */
 	  
 	  compute_stats(i,j,refcnt,overhead_per_ref,times,bws,percents,sizes,tmicrosec,sizeof(DATATYPE));
